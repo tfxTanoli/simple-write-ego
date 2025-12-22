@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  PenTool, 
-  History, 
-  Settings, 
-  LogOut, 
-  Menu, 
-  X, 
+import {
+  LayoutDashboard,
+  PenTool,
+  History,
+  Settings,
+  LogOut,
+  Menu,
+  X,
   Sparkles,
   CreditCard,
   User as UserIcon,
@@ -27,29 +27,29 @@ interface LayoutProps {
   theme: 'light' | 'dark';
   toggleTheme: () => void;
   onRefresh: () => void;
+  onLogout: () => Promise<void>;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, user, setUser, theme, toggleTheme, onRefresh }) => {
+const Layout: React.FC<LayoutProps> = ({ children, user, setUser, theme, toggleTheme, onRefresh, onLogout }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const isPublicPage = !user || (['/', '/login', '/signup', '/pricing', '/tool', '/ethics', '/blog', '/about', '/privacy', '/terms'].includes(location.pathname) && !location.pathname.startsWith('/app'));
 
-  const handleLogout = () => {
-    logoutUser();
-    setUser(null);
+  const handleLogout = async () => {
+    await onLogout();
     navigate('/');
   };
 
   const handleLogoClick = () => {
-    navigate('/'); 
+    navigate('/');
     setIsMobileMenuOpen(false);
   };
 
   const ThemeToggle = () => (
-    <button 
-      onClick={toggleTheme} 
+    <button
+      onClick={toggleTheme}
       className="p-2 rounded-full text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 transition-colors"
       aria-label="Toggle Dark Mode"
     >
@@ -67,20 +67,20 @@ const Layout: React.FC<LayoutProps> = ({ children, user, setUser, theme, toggleT
                 <Sparkles className="h-8 w-8 text-brand-600 mr-2 group-hover:rotate-12 transition-transform" />
                 <span className="font-bold text-xl tracking-tight text-slate-900 dark:text-white">SimpleWriteGO</span>
               </div>
-              
+
               <div className="hidden md:flex items-center space-x-8">
                 <Link to="/" className="text-slate-600 hover:text-brand-600 dark:text-slate-300 dark:hover:text-brand-400 font-medium transition">Home</Link>
                 <Link to="/pricing" className="text-slate-600 hover:text-brand-600 dark:text-slate-300 dark:hover:text-brand-400 font-medium transition">Pricing</Link>
                 <ThemeToggle />
                 {user ? (
-                   <Link to="/app" className="bg-brand-600 text-white px-5 py-2 rounded-full font-medium hover:bg-brand-700 transition shadow-lg shadow-brand-500/20 flex items-center">
-                     {user.avatarUrl ? (
-                       <img src={user.avatarUrl} alt={user.name} className="h-6 w-6 rounded-full mr-2 object-cover border border-brand-400" />
-                     ) : (
-                       <UserIcon className="h-4 w-4 mr-2" />
-                     )}
-                     Dashboard
-                   </Link>
+                  <Link to="/app" className="bg-brand-600 text-white px-5 py-2 rounded-full font-medium hover:bg-brand-700 transition shadow-lg shadow-brand-500/20 flex items-center">
+                    {user.avatarUrl ? (
+                      <img src={user.avatarUrl} alt={user.name} className="h-6 w-6 rounded-full mr-2 object-cover border border-brand-400" />
+                    ) : (
+                      <UserIcon className="h-4 w-4 mr-2" />
+                    )}
+                    Dashboard
+                  </Link>
                 ) : (
                   <>
                     <Link to="/login" className="text-slate-900 dark:text-white font-medium hover:text-brand-600 dark:hover:text-brand-400 transition">Sign in</Link>
@@ -114,7 +114,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, setUser, theme, toggleT
                   <a href="#" className="text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 transition"><Linkedin className="h-5 w-5" /></a>
                 </div>
               </div>
-              
+
               <div>
                 <h4 className="font-bold text-slate-900 dark:text-white mb-4">Product</h4>
                 <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
@@ -142,7 +142,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, setUser, theme, toggleT
                 </ul>
               </div>
             </div>
-            
+
             <div className="border-t border-slate-200 dark:border-slate-800 pt-8 flex flex-col md:flex-row justify-between items-center">
               <p className="text-slate-500 dark:text-slate-500 text-sm">
                 © {new Date().getFullYear()} SimpleWriteGo. All rights reserved.
@@ -160,8 +160,8 @@ const Layout: React.FC<LayoutProps> = ({ children, user, setUser, theme, toggleT
     );
   }
 
-  const isActive = (path: string) => location.pathname === path 
-    ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300' 
+  const isActive = (path: string) => location.pathname === path
+    ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300'
     : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200';
 
   return (
@@ -169,15 +169,15 @@ const Layout: React.FC<LayoutProps> = ({ children, user, setUser, theme, toggleT
       <aside className={`fixed inset-y-0 left-0 z-40 w-64 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 transform transition-transform duration-200 ease-in-out md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="h-full flex flex-col">
           <div className="h-16 flex items-center justify-between px-6 border-b border-slate-100 dark:border-slate-700 cursor-pointer">
-             <div onClick={handleLogoClick} className="flex items-center group">
-               <Sparkles className="h-6 w-6 text-brand-600 mr-2 group-hover:rotate-12 transition-transform" />
-               <span className="font-bold text-lg text-slate-900 dark:text-white">SimpleWriteGO</span>
-             </div>
-             <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden text-slate-500"><X size={20} /></button>
+            <div onClick={handleLogoClick} className="flex items-center group">
+              <Sparkles className="h-6 w-6 text-brand-600 mr-2 group-hover:rotate-12 transition-transform" />
+              <span className="font-bold text-lg text-slate-900 dark:text-white">SimpleWriteGO</span>
+            </div>
+            <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden text-slate-500"><X size={20} /></button>
           </div>
-          
+
           <div className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
-            
+
             <div className="px-3 mb-2 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">User Menu</div>
             <Link to="/app" className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition ${isActive('/app')}`} onClick={() => setIsMobileMenuOpen(false)}>
               <LayoutDashboard className="h-5 w-5 mr-3" />
@@ -198,47 +198,47 @@ const Layout: React.FC<LayoutProps> = ({ children, user, setUser, theme, toggleT
           </div>
 
           <div className="px-4 py-4 border-t border-slate-100 dark:border-slate-700">
-             <div className="flex items-center justify-between mb-4">
-                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Theme</span>
-                <ThemeToggle />
-             </div>
-             
-             {/* User Profile Snippet */}
-             <div className="flex items-center mb-4 px-1">
-                <div className="flex-shrink-0 mr-3 relative">
-                   {user?.avatarUrl ? (
-                     <img src={user.avatarUrl} alt={user.name} className="h-10 w-10 rounded-full object-cover border border-slate-200 dark:border-slate-600" />
-                   ) : (
-                     <div className="bg-brand-100 dark:bg-brand-900/50 rounded-full p-2 h-10 w-10 flex items-center justify-center">
-                       <UserIcon className="h-6 w-6 text-brand-600 dark:text-brand-400" />
-                     </div>
-                   )}
-                </div>
-                <div className="overflow-hidden">
-                  <p className="text-sm font-medium text-slate-900 dark:text-white truncate">{user?.name}</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{user?.email}</p>
-                </div>
-             </div>
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Theme</span>
+              <ThemeToggle />
+            </div>
 
-             <button onClick={handleLogout} className="flex w-full items-center px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition">
-                <LogOut className="h-5 w-5 mr-3" /> Sign Out
-             </button>
+            {/* User Profile Snippet */}
+            <div className="flex items-center mb-4 px-1">
+              <div className="flex-shrink-0 mr-3 relative">
+                {user?.avatarUrl ? (
+                  <img src={user.avatarUrl} alt={user.name} className="h-10 w-10 rounded-full object-cover border border-slate-200 dark:border-slate-600" />
+                ) : (
+                  <div className="bg-brand-100 dark:bg-brand-900/50 rounded-full p-2 h-10 w-10 flex items-center justify-center">
+                    <UserIcon className="h-6 w-6 text-brand-600 dark:text-brand-400" />
+                  </div>
+                )}
+              </div>
+              <div className="overflow-hidden">
+                <p className="text-sm font-medium text-slate-900 dark:text-white truncate">{user?.name}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{user?.email}</p>
+              </div>
+            </div>
+
+            <button onClick={handleLogout} className="flex w-full items-center px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition">
+              <LogOut className="h-5 w-5 mr-3" /> Sign Out
+            </button>
           </div>
         </div>
       </aside>
 
       <div className="flex-1 md:ml-64 flex flex-col min-h-screen">
-         <header className="md:hidden bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 h-16 flex items-center justify-between px-4 sticky top-0 z-30">
-            <div onClick={handleLogoClick} className="flex items-center cursor-pointer">
-              <Sparkles className="h-6 w-6 text-brand-600 mr-2" />
-              <span className="font-bold text-lg dark:text-white">SimpleWriteGO</span>
-            </div>
-            <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="text-slate-600 dark:text-slate-300"><Menu /></button>
-         </header>
+        <header className="md:hidden bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 h-16 flex items-center justify-between px-4 sticky top-0 z-30">
+          <div onClick={handleLogoClick} className="flex items-center cursor-pointer">
+            <Sparkles className="h-6 w-6 text-brand-600 mr-2" />
+            <span className="font-bold text-lg dark:text-white">SimpleWriteGO</span>
+          </div>
+          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="text-slate-600 dark:text-slate-300"><Menu /></button>
+        </header>
 
-         <main className="flex-1 p-4 md:p-8 overflow-y-auto">
-            {children}
-         </main>
+        <main className="flex-1 p-4 md:p-8 overflow-y-auto">
+          {children}
+        </main>
       </div>
     </div>
   );

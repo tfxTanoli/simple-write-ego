@@ -29,6 +29,7 @@ export interface User {
 
 export interface HistoryItem {
   id: string;
+  userId: string;
   date: string;
   originalText: string;
   humanizedText: string;

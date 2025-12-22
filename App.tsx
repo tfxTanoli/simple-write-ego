@@ -17,9 +17,10 @@ import CheckoutPage from './pages/CheckoutPage';
 import { getUser } from './services/storageService';
 import { User } from './types';
 
-const App: React.FC = () => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+
+const AppContent: React.FC = () => {
+  const { currentUser: user, loading, logout } = useAuth();
   const [refreshKey, setRefreshKey] = useState(0);
 
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
@@ -36,14 +37,6 @@ const App: React.FC = () => {
   });
 
   useEffect(() => {
-    const storedUser = getUser();
-    if (storedUser) {
-      setUser(storedUser);
-    }
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
     } else {
@@ -57,11 +50,8 @@ const App: React.FC = () => {
   };
 
   const refreshUser = () => {
-    const updated = getUser();
-    setUser(updated);
-  };
-
-  const handleAppRefresh = () => {
+    // Handled by Context now, but kept for interface compatibility if needed
+    // In real app, context would update automatically via listeners
     setRefreshKey(prev => prev + 1);
   };
 
@@ -69,15 +59,19 @@ const App: React.FC = () => {
     return <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div></div>;
   }
 
+  // Define setUser wrapper for backward compatibility or refactor components to not need it
+  const setUser = () => { };
+
   return (
     <Router>
-      <Layout 
-        key={refreshKey} 
-        user={user} 
-        setUser={setUser} 
-        theme={theme} 
+      <Layout
+        key={refreshKey}
+        user={user}
+        setUser={setUser} // Deprecated but kept for type safety until refactor
+        theme={theme}
         toggleTheme={toggleTheme}
-        onRefresh={handleAppRefresh}
+        onRefresh={refreshUser}
+        onLogout={logout}
       >
         <Routes>
           {/* Public Routes */}
@@ -89,49 +83,57 @@ const App: React.FC = () => {
           <Route path="/about" element={<AboutPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/terms" element={<TermsPage />} />
-          
-          <Route 
-            path="/login" 
-            element={!user ? <AuthPage setUser={setUser} mode="login" /> : <Navigate to="/app" />} 
+
+          <Route
+            path="/login"
+            element={!user ? <AuthPage /> : <Navigate to="/app" />}
           />
-          <Route 
-            path="/signup" 
-            element={!user ? <AuthPage setUser={setUser} mode="signup" /> : <Navigate to="/app" />} 
+          <Route
+            path="/signup"
+            element={!user ? <AuthPage mode="signup" /> : <Navigate to="/app" />}
           />
 
           {/* User Protected Routes */}
-          <Route 
-            path="/app" 
-            element={user ? <Dashboard user={user} /> : <Navigate to="/login" />} 
+          <Route
+            path="/app"
+            element={user ? <Dashboard user={user} /> : <Navigate to="/login" />}
           />
-          <Route 
-            path="/app/humanizer" 
-            element={user ? <HumanizerTool user={user} onUserUpdate={refreshUser} /> : <Navigate to="/login" />} 
+          <Route
+            path="/app/humanizer"
+            element={user ? <HumanizerTool user={user} onUserUpdate={refreshUser} /> : <Navigate to="/login" />}
           />
-          <Route 
-            path="/app/history" 
-            element={user ? <HistoryPage /> : <Navigate to="/login" />} 
+          <Route
+            path="/app/history"
+            element={user ? <HistoryPage /> : <Navigate to="/login" />}
           />
-          <Route 
-            path="/app/pricing" 
-            element={user ? <PricingPage user={user} onPlanUpdate={refreshUser} /> : <Navigate to="/login" />} 
+          <Route
+            path="/app/pricing"
+            element={user ? <PricingPage user={user} onPlanUpdate={refreshUser} /> : <Navigate to="/login" />}
           />
-          <Route 
-            path="/app/settings" 
-            element={user ? <SettingsPage user={user} onUserUpdate={refreshUser} /> : <Navigate to="/login" />} 
+          <Route
+            path="/app/settings"
+            element={user ? <SettingsPage user={user} onUserUpdate={refreshUser} /> : <Navigate to="/login" />}
           />
-          
+
           {/* Checkout Route */}
-          <Route 
-            path="/checkout" 
-            element={user ? <CheckoutPage user={user} onPlanUpdate={refreshUser} /> : <Navigate to="/login" />} 
+          <Route
+            path="/checkout"
+            element={user ? <CheckoutPage user={user} onPlanUpdate={refreshUser} /> : <Navigate to="/login" />}
           />
-          
+
           {/* Catch all */}
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </Layout>
     </Router>
+  );
+};
+
+const App: React.FC = () => {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 };
 

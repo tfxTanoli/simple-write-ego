@@ -19,7 +19,7 @@ const DEFAULT_USER: User = {
   email: 'user@example.com',
   plan: PlanType.FREE,
   wordsUsedToday: 0,
-  wordLimit: 500, 
+  wordLimit: 500,
   writingStyles: [],
   role: 'user',
   status: 'active',
@@ -109,10 +109,10 @@ export const updateInvoiceStatus = (id: string, status: 'paid' | 'refunded') => 
   if (idx !== -1) {
     invoices[idx].status = status;
     localStorage.setItem(STORAGE_KEYS.INVOICES_DB, JSON.stringify(invoices));
-    
+
     // Log refund
     if (status === 'refunded') {
-        addSystemLog({ action: 'Refund Processed', details: `Refunded invoice ${id} for $${invoices[idx].amount}`, severity: 'warning' });
+      addSystemLog({ action: 'Refund Processed', details: `Refunded invoice ${id} for $${invoices[idx].amount}`, severity: 'warning' });
     }
   }
 };
@@ -130,28 +130,28 @@ export const getUser = (): User | null => {
 
 export const loginUser = (email: string): User => {
   const allUsers = getAllUsers();
-  
+
   // Check if exists in DB
   const foundUser = allUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
-  
+
   if (foundUser) {
     localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(foundUser));
     return foundUser;
   }
-  
+
   // Create new user if not found
   const newUser: User = {
     ...DEFAULT_USER,
     id: Date.now().toString(),
     email,
-    name: email.split('@')[0], 
+    name: email.split('@')[0],
     joinedDate: new Date().toISOString()
   };
-  
+
   // Add to DB
   allUsers.push(newUser);
   localStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify(allUsers));
-  
+
   // Set Session
   localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(newUser));
   return newUser;
@@ -159,7 +159,7 @@ export const loginUser = (email: string): User => {
 
 export const signupUser = (email: string, name: string): User => {
   const allUsers = getAllUsers();
-  
+
   const existing = allUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
   if (existing) {
     localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(existing));
@@ -178,7 +178,7 @@ export const signupUser = (email: string, name: string): User => {
     status: 'active',
     joinedDate: new Date().toISOString()
   };
-  
+
   allUsers.push(newUser);
   localStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify(allUsers));
   localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(newUser));
@@ -188,19 +188,19 @@ export const signupUser = (email: string, name: string): User => {
 export const updateUserInDb = (updatedUser: User) => {
   const allUsers = getAllUsers();
   const index = allUsers.findIndex(u => u.id === updatedUser.id);
-  
+
   if (index !== -1) {
     allUsers[index] = updatedUser;
     localStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify(allUsers));
-    
+
     const currentUser = getUser();
     if (currentUser && currentUser.id === updatedUser.id) {
       localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updatedUser));
     }
-    
+
     // Log user update
     addSystemLog({ action: 'User Updated', details: `Updated profile for user ${updatedUser.email}`, severity: 'info' });
-    
+
     return true;
   }
   return false;
@@ -213,11 +213,11 @@ export const logoutUser = () => {
 export const updateUserPlan = (plan: PlanType) => {
   const user = getUser();
   if (!user) return;
-  
+
   let limit = 500;
   if (plan === PlanType.PRO) limit = 15000;
   if (plan === PlanType.ULTRA) limit = 30000;
-  if (plan === PlanType.UNLIMITED) limit = 1000000; 
+  if (plan === PlanType.UNLIMITED) limit = 1000000;
 
   const updated = { ...user, plan, wordLimit: limit };
   localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updated));
@@ -229,11 +229,11 @@ export const addOneTimeCredits = (amount: number) => {
   const user = getUser();
   if (!user) return;
 
-  const updated = { 
-    ...user, 
-    wordLimit: user.wordLimit + amount 
+  const updated = {
+    ...user,
+    wordLimit: user.wordLimit + amount
   };
-  
+
   localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updated));
   updateUserInDb(updated);
   return updated;
@@ -243,12 +243,12 @@ export const cancelSubscription = () => {
   const user = getUser();
   if (!user) return null;
 
-  const updated = { 
-    ...user, 
-    plan: PlanType.FREE, 
-    wordLimit: 500 
+  const updated = {
+    ...user,
+    plan: PlanType.FREE,
+    wordLimit: 500
   };
-  
+
   localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updated));
   updateUserInDb(updated);
   return updated;
@@ -267,30 +267,39 @@ export const updateUserProfile = (updates: Partial<User>) => {
 export const incrementUsage = (wordCount: number): User => {
   const user = getUser();
   if (!user) throw new Error("No user found");
-  
+
   const updated = { ...user, wordsUsedToday: user.wordsUsedToday + wordCount };
   localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updated));
   updateUserInDb(updated);
   return updated;
 };
 
-export const getHistory = (): HistoryItem[] => {
+export const getHistory = (userId: string): HistoryItem[] => {
   const data = localStorage.getItem(STORAGE_KEYS.HISTORY);
-  return data ? JSON.parse(data) : [];
+  const allHistory: HistoryItem[] = data ? JSON.parse(data) : [];
+  return allHistory.filter(item => item.userId === userId);
 };
 
-export const addToHistory = (item: Omit<HistoryItem, 'id' | 'date'>) => {
-  const history = getHistory();
+export const addToHistory = (userId: string, item: Omit<HistoryItem, 'id' | 'date' | 'userId'>) => {
+  const data = localStorage.getItem(STORAGE_KEYS.HISTORY);
+  const allHistory: HistoryItem[] = data ? JSON.parse(data) : [];
+
   const newItem: HistoryItem = {
     ...item,
     id: Date.now().toString(),
+    userId: userId,
     date: new Date().toISOString(),
   };
-  const updated = [newItem, ...history];
+
+  const updated = [newItem, ...allHistory];
   localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(updated));
   return newItem;
 };
 
-export const clearHistory = () => {
-    localStorage.removeItem(STORAGE_KEYS.HISTORY);
+export const clearHistory = (userId: string) => {
+  const data = localStorage.getItem(STORAGE_KEYS.HISTORY);
+  if (!data) return;
+  const allHistory: HistoryItem[] = JSON.parse(data);
+  const retainedHistory = allHistory.filter(item => item.userId !== userId);
+  localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(retainedHistory));
 }

@@ -152,7 +152,7 @@ const HumanizerTool: React.FC<HumanizerToolProps> = ({ user, onUserUpdate, embed
       // Update local stats if user exists
       if (user) {
         incrementUsage(wordCount);
-        addToHistory({
+        addToHistory(user.id, {
           originalText: inputText,
           humanizedText: result,
           tone: tone,
