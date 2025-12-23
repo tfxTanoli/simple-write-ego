@@ -5,7 +5,7 @@ import { RewritingConfig, Tone } from "../types";
 // Note: dangerouslyAllowBrowser is required for client-side usage. 
 // In a production environment, API calls should be routed through a backend to protect the API key.
 const openai = new OpenAI({
-    apiKey: process.env.API_KEY || process.env.OPENAI_API_KEY,
+    apiKey: import.meta.env.VITE_OPENAI_API_KEY,
     dangerouslyAllowBrowser: true
 });
 
