@@ -121,15 +121,36 @@ const HumanizerTool: React.FC<HumanizerToolProps> = ({ user, onUserUpdate, embed
     if (!inputText.trim()) return;
     setIsAnalyzing(true);
     setDetectionScore(null);
+    setError(null);
+
+    // Clear any cached detection results to force fresh analysis
+    const textSnippet = inputText.substring(0, 50) + inputText.substring(inputText.length - 50);
+    const cacheKey = `ai_detection_${simpleHash(textSnippet)}_${inputText.length}`;
+    localStorage.removeItem(cacheKey);
+    console.log('🗑️ Cleared cache for fresh AI detection');
+
     try {
-      const score = await detectAIContent(inputText);
-      setDetectionScore(score); // This will return a low "Human" score (e.g. 35%)
-    } catch (e) {
-      console.error(e);
-      setError("Analysis failed. Please try again.");
+      const humanScore = await detectAIContent(inputText);
+      // Convert to AI score (invert): if 80% human, then 20% AI
+      const aiScore = 100 - humanScore;
+      setDetectionScore(aiScore);
+    } catch (e: any) {
+      console.error('Detection error:', e);
+      setError(e?.message || "Analysis failed. Please try again.");
     } finally {
       setIsAnalyzing(false);
     }
+  };
+
+  // Helper function to generate hash (same as in openaiService)
+  const simpleHash = (str: string): string => {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
+    }
+    return hash.toString(36);
   };
 
   // Step 3: Humanize Function
@@ -190,11 +211,12 @@ const HumanizerTool: React.FC<HumanizerToolProps> = ({ user, onUserUpdate, embed
     setHumanScore(null);
   };
 
-  // Helper for color coding the meter
-  const getScoreColor = (score: number) => {
-    if (score <= 40) return { bg: 'bg-red-500', text: 'text-red-600', ring: 'ring-red-100', label: 'High AI Detected' };
-    if (score <= 70) return { bg: 'bg-yellow-500', text: 'text-yellow-600', ring: 'ring-yellow-100', label: 'Mixed Content' };
-    return { bg: 'bg-green-500', text: 'text-green-600', ring: 'ring-green-100', label: 'Human Written' };
+  // Helper for color coding the meter (for AI percentage, not human)
+  // Higher AI percentage = worse (red), Lower AI percentage = better (green)
+  const getScoreColor = (aiScore: number) => {
+    if (aiScore >= 70) return { bg: 'bg-red-500', text: 'text-red-600', ring: 'ring-red-100', label: 'High AI Detected' };
+    if (aiScore >= 40) return { bg: 'bg-yellow-500', text: 'text-yellow-600', ring: 'ring-yellow-100', label: 'Likely AI-Assisted' };
+    return { bg: 'bg-green-500', text: 'text-green-600', ring: 'ring-green-100', label: 'Likely Human-Written' };
   };
 
   return (
@@ -363,7 +385,7 @@ const HumanizerTool: React.FC<HumanizerToolProps> = ({ user, onUserUpdate, embed
                         <div className="flex justify-between items-end mb-2">
                           <span className="text-sm font-bold text-slate-700 dark:text-slate-300">AI Detection Score</span>
                           <span className={`text-xl font-black ${getScoreColor(detectionScore).text}`}>
-                            {detectionScore}% Human-Written
+                            {detectionScore}% AI-Generated
                           </span>
                         </div>
                         {/* Visual Meter */}
@@ -374,8 +396,8 @@ const HumanizerTool: React.FC<HumanizerToolProps> = ({ user, onUserUpdate, embed
                           />
                         </div>
                         <div className="flex justify-between mt-1 text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500">
-                          <span>Robotic (0%)</span>
-                          <span>Human (100%)</span>
+                          <span>Human (0%)</span>
+                          <span>AI (100%)</span>
                         </div>
                       </div>
 

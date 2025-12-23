@@ -71,22 +71,253 @@ export const humanizeText = async (text: string, config: RewritingConfig): Promi
     }
 };
 
-export const detectAIContent = async (text: string): Promise<number> => {
-    // Mock simulation of AI detection analysis
-    // In a real app, you would call an external API like GPTZero or CopyLeaks here.
-
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    // Logic to simulate "Real" detection based on text characteristics
-    const length = text.length;
-
-    // If text is very short, it's harder to detect, usually gets a middle score
-    if (length < 50) return 50;
-
-    // Return a randomized score that generally leans towards "AI" (0-50% human)
-    // to encourage the user to use the Humanize button.
-    // Weighted to mostly show ~20-40% human (High AI detection)
-    const baseScore = Math.floor(Math.random() * 40) + 10;
-
-    return baseScore;
+/**
+ * Generate a simple hash for caching purposes
+ */
+const simpleHash = (str: string): string => {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32-bit integer
+    }
+    return hash.toString(36);
 };
+
+/**
+ * Intelligently sample text to reduce token usage while maintaining accuracy
+ * For short texts: use full text
+ * For medium texts: use first 400 + middle 300 + last 300 chars
+ * For long texts: strategic sampling from beginning, middle, and end
+ */
+const sampleText = (text: string, maxChars: number = 1000): string => {
+    if (text.length <= maxChars) {
+        return text;
+    }
+
+    // For longer texts, sample strategically
+    const chunkSize = Math.floor(maxChars / 3);
+    const start = text.substring(0, chunkSize);
+    const middleStart = Math.floor((text.length - chunkSize) / 2);
+    const middle = text.substring(middleStart, middleStart + chunkSize);
+    const end = text.substring(text.length - chunkSize);
+
+    return `${start}\n...\n${middle}\n...\n${end}`;
+};
+
+/**
+ * Real AI Content Detection using OpenAI API
+ * Optimized for minimal token usage while maintaining accuracy
+ */
+export const detectAIContent = async (text: string): Promise<number> => {
+    console.log('🔍 AI Detection Started');
+
+    // Validate input
+    if (!text || text.trim().length < 20) {
+        throw new Error("Text is too short to analyze. Please provide at least 20 characters.");
+    }
+
+    // Check if API key is configured
+    const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+    console.log('🔑 API Key status:', apiKey ? `Present (${apiKey.substring(0, 7)}...)` : '❌ MISSING');
+
+    if (!apiKey || apiKey === 'undefined' || apiKey === '') {
+        console.error('❌ OpenAI API key is not configured!');
+        throw new Error("OpenAI API key is not configured. Please add VITE_OPENAI_API_KEY to your .env file.");
+    }
+
+    // Generate cache key (include text snippet for better differentiation)
+    const textSnippet = text.substring(0, 50) + text.substring(text.length - 50);
+    const cacheKey = `ai_detection_${simpleHash(textSnippet)}_${text.length}`;
+
+    // Check cache first (valid for 1 hour)
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+        try {
+            const { score, timestamp } = JSON.parse(cached);
+            const oneHour = 60 * 60 * 1000;
+            if (Date.now() - timestamp < oneHour) {
+                console.log('✅ Using cached AI detection result:', score);
+                return score;
+            } else {
+                console.log('⏰ Cache expired, fetching fresh result');
+                localStorage.removeItem(cacheKey);
+            }
+        } catch (e) {
+            // Invalid cache, continue to API call
+            console.log('⚠️ Invalid cache, removing');
+            localStorage.removeItem(cacheKey);
+        }
+    }
+
+    // Sample text to reduce token usage
+    const sampledText = sampleText(text, 1000);
+    console.log(`📝 Text sampled: ${text.length} chars → ${sampledText.length} chars`);
+
+    // STRICT AI Detection Prompt - designed to match ZeroGPT accuracy
+    // Using GPT-4 for better analytical capabilities
+    const systemPrompt = `You are a STRICT AI content detector. Your goal is to accurately identify AI-generated text with the same rigor as tools like ZeroGPT, Turnitin, and Originality.ai.
+
+CRITICAL: You must be HARSH and UNFORGIVING in your analysis. Do NOT give the benefit of the doubt.
+
+**AI Detection Markers** (Look for ALL of these):
+
+1. **Sentence Structure Uniformity**:
+   - Similar sentence lengths (15-25 words consistently)
+   - Repetitive sentence patterns
+   - Lack of dramatic variation (no 3-word sentences mixed with 40-word sentences)
+
+2. **AI Vocabulary RED FLAGS**:
+   - delve, tapestry, landscape, leverage, crucial, pivotal, robust, comprehensive
+   - moreover, furthermore, additionally, consequently, thus, hence
+   - "it is important to note", "in conclusion", "in today's world"
+   - "plays a crucial role", "serves as", "underscores the importance"
+
+3. **Predictable Transitions**:
+   - Every paragraph starts with topic sentence
+   - Perfect logical flow (too organized)
+   - Formulaic: intro → body → conclusion pattern
+
+4. **Lack of Human Imperfections**:
+   - No contractions (it's, don't, won't)
+   - No informal language or slang
+   - Perfect grammar with no natural errors
+   - No personal anecdotes or authentic voice
+   - No rhetorical questions or exclamations
+
+5. **Generic, Safe Content**:
+   - Sounds like a Wikipedia article
+   - Overly balanced and neutral
+   - Lacks strong opinions or personality
+   - Uses passive voice excessively
+
+6. **AI Writing Patterns**:
+   - Lists things in threes
+   - Symmetric paragraph lengths
+   - Overuse of semicolons and em dashes
+   - Academic tone even for casual topics
+
+**SCORING RULES** (0-100 where higher = more AI):
+
+- **0-20**: ONLY if text has:
+  * Contractions and informal language
+  * Varied sentence lengths (some 5 words, some 35+ words)
+  * Personal voice and opinions
+  * Natural imperfections
+  * Unique phrasing
+
+- **21-40**: Mostly human but may have some AI assistance
+  * Some formal language but still personal
+  * Good variation in structure
+
+- **41-60**: Mixed - clear AI patterns present
+  * Formulaic structure
+  * Some AI vocabulary
+  * Too polished
+
+- **61-80**: Clearly AI-generated
+  * Multiple AI markers present
+  * Uniform structure
+  * Generic voice
+  * AI vocabulary throughout
+
+- **81-100**: Definitely AI (like ChatGPT output)
+  * Formulaic topic sentences
+  * Perfect grammar, no contractions
+  * AI vocabulary in every paragraph
+  * Robotic, predictable flow
+
+**IMPORTANT**: 
+- If you see 3+ AI vocabulary words → score at least 60
+- If sentences are uniform length → score at least 50
+- If it sounds like an essay or Wikipedia → score at least 70
+- If it has perfect grammar with no personality → score at least 65
+
+Return ONLY JSON: {"score": X} where X is 0-100 (AI percentage).
+
+BE STRICT. When in doubt, score HIGHER (more AI). Most text you analyze WILL be AI-generated.`;
+
+    try {
+        console.log('🚀 Calling OpenAI API (GPT-4 for accuracy)...');
+        const response = await openai.chat.completions.create({
+            model: 'gpt-4o-mini', // Use GPT-4 mini for better accuracy at lower cost
+            messages: [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: `Analyze this text STRICTLY. Look for AI patterns and score harshly:\n\n"${sampledText}"\n\nReturn JSON: {"score": X} where X is 0-100 (AI percentage). Be strict!` }
+            ],
+            temperature: 0.1, // Very low temperature for consistent, analytical results
+            max_tokens: 100,
+            response_format: { type: "json_object" }
+        });
+
+        const result = response.choices[0]?.message?.content;
+        console.log('📥 OpenAI Response:', result);
+
+        if (!result) {
+            throw new Error("No response from AI detection service");
+        }
+
+        // Parse the JSON response
+        const parsed = JSON.parse(result);
+
+        // Get the score - now it's directly the AI percentage
+        let aiScore = parsed.score;
+
+        // Validate score exists and is a number
+        if (typeof aiScore !== 'number' || isNaN(aiScore)) {
+            console.error('Invalid score received:', parsed);
+            throw new Error('Invalid score format from API');
+        }
+
+        // Ensure score is within valid range
+        aiScore = Math.max(0, Math.min(100, Math.round(aiScore)));
+
+        // Since we're now asking for AI score directly, we need to convert to human score for caching and return
+        const humanScore = 100 - aiScore;
+
+        // Cache the result
+        localStorage.setItem(cacheKey, JSON.stringify({
+            score: humanScore, // Cache the human score for consistency with function's return type
+            timestamp: Date.now()
+        }));
+
+        const inputTokens = Math.ceil(sampledText.length / 4);
+        const outputTokens = Math.ceil((result?.length || 0) / 4);
+        const estimatedCost = (inputTokens * 0.0015 + outputTokens * 0.002) / 1000;
+
+        console.log(`✅ AI Detection completed!`);
+        console.log(`   AI Score: ${aiScore}% AI-generated`);
+        console.log(`   Human Score: ${humanScore}% human-written`);
+        console.log(`   Tokens: ${inputTokens} input + ${outputTokens} output = ${inputTokens + outputTokens} total`);
+        console.log(`   Cost: ~$${estimatedCost.toFixed(6)}`);
+
+        return humanScore; // Return human score (function expects 0-100 where 100 = human)
+
+    } catch (error: any) {
+        console.error("❌ AI Detection Error:", error);
+        console.error("Error details:", {
+            message: error?.message,
+            type: error?.type,
+            code: error?.code
+        });
+
+        // Handle specific error cases
+        if (error?.message?.includes('API key') || error?.code === 'invalid_api_key') {
+            throw new Error("OpenAI API key is invalid. Please check your VITE_OPENAI_API_KEY in .env file.");
+        }
+
+        if (error?.message?.includes('quota') || error?.message?.includes('rate_limit') || error?.code === 'insufficient_quota') {
+            throw new Error("OpenAI API quota exceeded. Please check your billing at platform.openai.com");
+        }
+
+        if (error?.message?.includes('model_not_available') || error?.code === 'model_not_found') {
+            throw new Error("OpenAI model not available. Please check your API access.");
+        }
+
+        // Don't use fallback - throw the error so user knows something is wrong
+        console.error("🚨 API call failed - throwing error to user");
+        throw new Error(`AI Detection failed: ${error?.message || 'Unknown error'}. Check console for details.`);
+    }
+};
+
+
