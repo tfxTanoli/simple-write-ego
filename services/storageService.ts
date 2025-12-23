@@ -128,13 +128,18 @@ export const getUser = (): User | null => {
   return user;
 };
 
-export const loginUser = (email: string): User => {
+export const loginUser = (email: string, displayName?: string): User => {
   const allUsers = getAllUsers();
 
   // Check if exists in DB
   const foundUser = allUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
 
   if (foundUser) {
+    // If Firebase has a displayName and it's different from stored name, update it
+    if (displayName && foundUser.name !== displayName) {
+      foundUser.name = displayName;
+      localStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify(allUsers));
+    }
     localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(foundUser));
     return foundUser;
   }
@@ -144,7 +149,7 @@ export const loginUser = (email: string): User => {
     ...DEFAULT_USER,
     id: Date.now().toString(),
     email,
-    name: email.split('@')[0],
+    name: displayName || email.split('@')[0], // Use displayName if available, otherwise fallback to email
     joinedDate: new Date().toISOString()
   };
 

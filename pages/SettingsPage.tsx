@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { User, PlanType, WritingStyle } from '../types';
-import { User as UserIcon, Mail, CreditCard, Shield, Key, Edit2, Save, X, Camera, Plus, Trash2, Link as LinkIcon, FileText, Upload, AlertTriangle } from 'lucide-react';
+import { User as UserIcon, Mail, CreditCard, Shield, Key, Edit2, Save, X, Camera, Plus, Trash2, Link as LinkIcon, FileText, Upload, AlertTriangle, Lock, Check } from 'lucide-react';
 import { updateUserProfile, cancelSubscription } from '../services/storageService';
 import { useNavigate } from 'react-router-dom';
 
@@ -12,7 +12,7 @@ interface SettingsPageProps {
 
 const SettingsPage: React.FC<SettingsPageProps> = ({ user: initialUser, onUserUpdate }) => {
   const navigate = useNavigate();
-  const { updateName } = useAuth();
+  const { updateName, changePassword } = useAuth();
   const [user, setUser] = useState(initialUser);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
@@ -29,6 +29,15 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ user: initialUser, onUserUp
 
   // Cancel Subscription States
   const [showCancelModal, setShowCancelModal] = useState(false);
+
+  // Password Change States
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
 
   const handleSaveProfile = async () => {
     // Validate inputs
@@ -117,6 +126,36 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ user: initialUser, onUserUp
       setUser(updatedUser);
       setShowCancelModal(false);
       onUserUpdate();
+    }
+  };
+
+  const handlePasswordChange = async () => {
+    setPasswordError('');
+    setPasswordSuccess(false);
+
+    // Validation
+    if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+      setPasswordError('All password fields are required');
+      return;
+    }
+
+    if (passwordData.newPassword.length < 8) {
+      setPasswordError('New password must be at least 8 characters long');
+      return;
+    }
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setPasswordError('New passwords do not match');
+      return;
+    }
+
+    try {
+      await changePassword(passwordData.currentPassword, passwordData.newPassword);
+      setPasswordSuccess(true);
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      setTimeout(() => setPasswordSuccess(false), 5000); // Clear success message after 5s
+    } catch (error: any) {
+      setPasswordError(error.message || 'Failed to update password. Please try again.');
     }
   };
 
@@ -226,6 +265,80 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ user: initialUser, onUserUp
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Change Password Section */}
+      <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden transition-colors duration-300">
+        <div className="p-6 border-b border-slate-100 dark:border-slate-700">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center">
+            <Lock className="h-5 w-5 mr-2 text-brand-600 dark:text-brand-400" />
+            Change Password
+          </h2>
+        </div>
+        <div className="p-6">
+          <div className="max-w-md space-y-4">
+            {/* Success Message */}
+            {passwordSuccess && (
+              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 flex items-center text-green-700 dark:text-green-400">
+                <Check className="h-5 w-5 mr-2" />
+                <span className="text-sm font-medium">Password updated successfully!</span>
+              </div>
+            )}
+
+            {/* Error Message */}
+            {passwordError && (
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 flex items-center text-red-700 dark:text-red-400">
+                <AlertTriangle className="h-5 w-5 mr-2" />
+                <span className="text-sm font-medium">{passwordError}</span>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Current Password</label>
+              <input
+                type="password"
+                value={passwordData.currentPassword}
+                onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                className="w-full border rounded-lg px-4 py-2 text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600 focus:ring-2 focus:ring-brand-500 outline-none transition"
+                placeholder="Enter current password"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">New Password</label>
+              <input
+                type="password"
+                value={passwordData.newPassword}
+                onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                className="w-full border rounded-lg px-4 py-2 text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600 focus:ring-2 focus:ring-brand-500 outline-none transition"
+                placeholder="Enter new password (min 8 characters)"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Confirm New Password</label>
+              <input
+                type="password"
+                value={passwordData.confirmPassword}
+                onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                className="w-full border rounded-lg px-4 py-2 text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600 focus:ring-2 focus:ring-brand-500 outline-none transition"
+                placeholder="Confirm new password"
+              />
+            </div>
+
+            <button
+              onClick={handlePasswordChange}
+              className="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-2.5 px-4 rounded-lg transition shadow-md flex items-center justify-center"
+            >
+              <Key className="h-4 w-4 mr-2" />
+              Update Password
+            </button>
+
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Password must be at least 8 characters long. You'll need to log in again after changing your password.
+            </p>
           </div>
         </div>
       </div>

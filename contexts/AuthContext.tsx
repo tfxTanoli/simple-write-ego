@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User as FirebaseUser, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { User as FirebaseUser, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 import { auth, googleProvider } from '../services/firebase';
 import { getUser, loginUser, signupUser, logoutUser as logoutStorage } from '../services/storageService';
 import { User } from '../types';
@@ -12,6 +12,7 @@ interface AuthContextType {
     signupWithEmail: (email: string, pass: string, name: string) => Promise<void>;
     logout: () => Promise<void>;
     updateName: (name: string) => Promise<void>;
+    changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -34,16 +35,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 // User is signed in
                 const email = firebaseUser.email;
                 if (email) {
-                    // Check if user exists in local storage DB, sync it
-                    // We use the email to map Firebase User to Local Storage User for now
-                    // In a real app, we would fetch from a database using UID
-                    let appUser = loginUser(email);
-
-                    // If new user via Google, ensure name is set
-                    if (firebaseUser.displayName && appUser.name !== firebaseUser.displayName && appUser.wordsUsedToday === 0) {
-                        // Update name if it's a fresh account or matching email
-                        // This is a basic sync, can be improved
-                    }
+                    // Pass Firebase displayName to loginUser so it syncs with local storage
+                    let appUser = loginUser(email, firebaseUser.displayName || undefined);
                     setCurrentUser(appUser);
                 }
             } else {
@@ -71,8 +64,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const loginWithEmail = async (email: string, pass: string) => {
-        await signInWithEmailAndPassword(auth, email, pass);
-        loginUser(email);
+        const result = await signInWithEmailAndPassword(auth, email, pass);
+        loginUser(email, result.user.displayName || undefined);
     };
 
     const signupWithEmail = async (email: string, pass: string, name: string) => {
@@ -100,8 +93,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
+    const changePassword = async (currentPassword: string, newPassword: string) => {
+        if (!auth.currentUser || !auth.currentUser.email) {
+            throw new Error('No user is currently logged in');
+        }
+
+        // Reauthenticate user before changing password (Firebase security requirement)
+        const credential = EmailAuthProvider.credential(
+            auth.currentUser.email,
+            currentPassword
+        );
+
+        try {
+            await reauthenticateWithCredential(auth.currentUser, credential);
+            await updatePassword(auth.currentUser, newPassword);
+        } catch (error: any) {
+            // Handle specific Firebase errors
+            if (error.code === 'auth/wrong-password') {
+                throw new Error('Current password is incorrect');
+            } else if (error.code === 'auth/weak-password') {
+                throw new Error('New password is too weak. Please use at least 6 characters');
+            } else if (error.code === 'auth/requires-recent-login') {
+                throw new Error('Please log out and log back in before changing your password');
+            }
+            throw error;
+        }
+    };
+
     return (
-        <AuthContext.Provider value={{ currentUser, loading, loginWithGoogle, loginWithEmail, signupWithEmail, logout, updateName }}>
+        <AuthContext.Provider value={{ currentUser, loading, loginWithGoogle, loginWithEmail, signupWithEmail, logout, updateName, changePassword }}>
             {children}
         </AuthContext.Provider>
     );
