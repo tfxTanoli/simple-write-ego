@@ -1,0 +1,51 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to check if user owns the document
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Users collection - each user can only access their own data
+    match /users/{userId} {
+      // Allow users to read their own document
+      allow read: if isOwner(userId);
+      
+      // Allow users to create their own document on signup
+      // Ensure the document ID matches the authenticated user's UID
+      allow create: if isOwner(userId) 
+                    && request.resource.data.id == request.auth.uid
+                    && request.resource.data.email == request.auth.token.email;
+      
+      // Allow users to update their own document
+      // Prevent changing critical fields like id, email, role
+      allow update: if isOwner(userId)
+                    && request.resource.data.id == resource.data.id
+                    && request.resource.data.email == resource.data.email
+                    && request.resource.data.role == resource.data.role;
+      
+      // Prevent users from deleting their own documents
+      // Only admins should be able to delete (implement admin logic if needed)
+      allow delete: if false;
+    }
+    
+    // History collection (if you add it later)
+    // Each user can only access their own history
+    match /history/{historyId} {
+      allow read, write: if isAuthenticated() 
+                         && request.resource.data.userId == request.auth.uid;
+    }
+    
+    // Default deny all other collections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

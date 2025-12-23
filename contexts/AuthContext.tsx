@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User as FirebaseUser, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 import { auth, googleProvider } from '../services/firebase';
 import { getUser, loginUser, signupUser, logoutUser as logoutStorage } from '../services/storageService';
+import { createUserInFirestore, getUserFromFirestore, updateLastLogin, syncUserToLocalStorage } from '../services/firestoreService';
 import { User } from '../types';
 
 interface AuthContextType {
@@ -30,14 +31,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+        const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
             if (firebaseUser) {
                 // User is signed in
                 const email = firebaseUser.email;
                 if (email) {
-                    // Pass Firebase displayName to loginUser so it syncs with local storage
-                    let appUser = loginUser(email, firebaseUser.displayName || undefined);
-                    setCurrentUser(appUser);
+                    try {
+                        // Try to fetch user from Firestore first
+                        let appUser = await getUserFromFirestore(firebaseUser.uid);
+
+                        if (appUser) {
+                            // Update last login
+                            await updateLastLogin(firebaseUser.uid);
+                            // Sync to localStorage
+                            syncUserToLocalStorage(appUser);
+                            setCurrentUser(appUser);
+                        } else {
+                            // Fallback to localStorage if Firestore doesn't have the user
+                            appUser = loginUser(email, firebaseUser.displayName || undefined);
+                            setCurrentUser(appUser);
+                        }
+                    } catch (error) {
+                        console.error('Error fetching user from Firestore:', error);
+                        // Fallback to localStorage
+                        const appUser = loginUser(email, firebaseUser.displayName || undefined);
+                        setCurrentUser(appUser);
+                    }
                 }
             } else {
                 // User is signed out
@@ -55,6 +74,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const result = await signInWithPopup(auth, googleProvider);
             const user = result.user;
             if (user.email) {
+                // Check if user exists in Firestore
+                const firestoreUser = await getUserFromFirestore(user.uid);
+
+                if (!firestoreUser) {
+                    // First time Google login - create user in Firestore
+                    await createUserInFirestore(user.uid, {
+                        email: user.email,
+                        name: user.displayName || 'Google User',
+                        avatarUrl: user.photoURL || undefined
+                    });
+                }
+
+                // Also save to localStorage for backward compatibility
                 signupUser(user.email, user.displayName || 'Google User');
             }
         } catch (error) {
@@ -71,6 +103,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const signupWithEmail = async (email: string, pass: string, name: string) => {
         const result = await createUserWithEmailAndPassword(auth, email, pass);
         await updateProfile(result.user, { displayName: name });
+
+        // Create user in Firestore
+        await createUserInFirestore(result.user.uid, {
+            email,
+            name
+        });
+
+        // Also save to localStorage for backward compatibility
         signupUser(email, name);
     };
 

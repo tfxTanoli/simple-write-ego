@@ -3,7 +3,9 @@ import { useAuth } from '../contexts/AuthContext';
 import { User, PlanType, WritingStyle } from '../types';
 import { User as UserIcon, Mail, CreditCard, Shield, Key, Edit2, Save, X, Camera, Plus, Trash2, Link as LinkIcon, FileText, Upload, AlertTriangle, Lock, Check } from 'lucide-react';
 import { updateUserProfile, cancelSubscription } from '../services/storageService';
+import { updateUserInFirestore } from '../services/firestoreService';
 import { useNavigate } from 'react-router-dom';
+import { auth } from '../services/firebase';
 
 interface SettingsPageProps {
   user: User;
@@ -48,6 +50,15 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ user: initialUser, onUserUp
         await updateName(formData.name);
       }
 
+      // Update Firestore if user is authenticated
+      if (auth.currentUser) {
+        await updateUserInFirestore(auth.currentUser.uid, {
+          name: formData.name,
+          avatarUrl: formData.avatarUrl || undefined
+        });
+      }
+
+      // Update localStorage
       const updatedUser = updateUserProfile({
         name: formData.name,
         email: formData.email,
