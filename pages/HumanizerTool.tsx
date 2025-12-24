@@ -20,6 +20,7 @@ import {
 import { User, Tone } from '../types';
 import { humanizeText, detectAIContent } from '../services/openaiService';
 import { incrementUsage, addToHistory } from '../services/storageService';
+import { incrementUserUsage } from '../services/firestoreService';
 
 interface HumanizerToolProps {
   user: User | null;
@@ -157,7 +158,7 @@ const HumanizerTool: React.FC<HumanizerToolProps> = ({ user, onUserUpdate, embed
   const handleHumanize = async () => {
     if (!inputText) return;
     if (user && isOverLimit) {
-      setError("You have reached your daily word limit. Please upgrade.");
+      setError("You have reached your daily limit of 500 words. Please try again tomorrow.");
       return;
     }
     setError(null);
@@ -172,6 +173,10 @@ const HumanizerTool: React.FC<HumanizerToolProps> = ({ user, onUserUpdate, embed
 
       // Update local stats if user exists
       if (user) {
+        // Sync to Firestore
+        await incrementUserUsage(user.id, wordCount);
+
+        // Update local state (optimistic or triggered by auth context refresh)
         incrementUsage(wordCount);
         addToHistory(user.id, {
           originalText: inputText,

@@ -8,6 +8,20 @@ interface AuthPageProps {
   mode?: 'login' | 'signup';
 }
 
+const getFriendlyErrorMessage = (error: any): string => {
+  const message = error.message || error.toString();
+
+  if (message.includes('auth/invalid-credential')) return "Incorrect email or password. Please try again.";
+  if (message.includes('auth/user-not-found')) return "No account found with this email.";
+  if (message.includes('auth/wrong-password')) return "Incorrect password.";
+  if (message.includes('auth/email-already-in-use')) return "An account with this email already exists.";
+  if (message.includes('auth/weak-password')) return "Password should be at least 6 characters.";
+  if (message.includes('auth/too-many-requests')) return "Too many attempts. Please try again later.";
+  if (message.includes('auth/network-request-failed')) return "Network error. Please check your connection.";
+
+  return "Something went wrong. Please try again.";
+};
+
 const AuthPage: React.FC<AuthPageProps> = ({ mode = 'login' }) => {
   const { loginWithEmail, signupWithEmail, loginWithGoogle } = useAuth();
   const [isLogin, setIsLogin] = useState(mode === 'login');
@@ -52,7 +66,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode = 'login' }) => {
       handleSuccess();
     } catch (err: any) {
       console.error(err);
-      setError(err.message || 'Authentication failed');
+      setError(getFriendlyErrorMessage(err));
       setIsLoading(false);
     }
   };
@@ -65,7 +79,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode = 'login' }) => {
       handleSuccess();
     } catch (err: any) {
       console.error(err);
-      setError("Google Sign In failed. Please try again.");
+      setError(getFriendlyErrorMessage(err));
       setIsGoogleLoading(false);
     }
   };
@@ -78,12 +92,12 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode = 'login' }) => {
             <Sparkles className="h-6 w-6" />
           </Link>
           <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white">
-            {isLogin ? 'Welcome back' : 'Create an account'}
+            {isLogin ? 'Welcome back' : 'Get Started Free'}
           </h2>
           <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
             {isLogin
-              ? 'Sign in to continue humanizing your text'
-              : 'Start making your AI content undetectable'}
+              ? 'Enter your credentials to access your account'
+              : 'Create your account to start humanizing AI text'}
           </p>
         </div>
 

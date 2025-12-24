@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp, increment } from 'firebase/firestore';
 import { db } from './firebase';
 import { User, PlanType } from '../types';
 
@@ -128,5 +128,22 @@ export const syncUserToLocalStorage = (user: User): void => {
         console.log('User synced to localStorage');
     } catch (error) {
         console.error('Error syncing user to localStorage:', error);
+    }
+};
+
+/**
+ * Increment user's word usage in Firestore
+ */
+export const incrementUserUsage = async (userId: string, amount: number): Promise<void> => {
+    try {
+        const userRef = doc(db, 'users', userId);
+        await updateDoc(userRef, {
+            wordsUsedToday: increment(amount),
+            updatedAt: serverTimestamp()
+        });
+        console.log(`Incremented usage for ${userId} by ${amount}`);
+    } catch (error) {
+        console.error('Error incrementing usage:', error);
+        throw error;
     }
 };
