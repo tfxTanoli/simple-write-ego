@@ -182,8 +182,9 @@ const HumanizerTool: React.FC<HumanizerToolProps> = ({ user, onUserUpdate, embed
         onUserUpdate();
       }
       setStep('result');
-    } catch (err) {
-      setError("Something went wrong. Please check your connection.");
+    } catch (err: any) {
+      console.error("Humanize error:", err);
+      setError(err?.message || "Something went wrong. Please check your connection.");
       setStep('input');
     }
   };

@@ -65,9 +65,19 @@ export const humanizeText = async (text: string, config: RewritingConfig): Promi
         });
 
         return response.choices[0]?.message?.content || "Failed to generate text. Please try again.";
-    } catch (error) {
+    } catch (error: any) {
         console.error("OpenAI API Error:", error);
-        throw new Error("Failed to connect to the AI service. Please check your connection or API key.");
+        // Pass through the specific error message helpful for debugging
+        const errorMessage = error?.message || error?.toString();
+
+        if (errorMessage.includes('401')) {
+            throw new Error("Invalid API Key. Please check your VITE_OPENAI_API_KEY in .env settings.");
+        }
+        if (errorMessage.includes('insufficient_quota')) {
+            throw new Error("You have run out of OpenAI credits. Please check your OpenAI billing.");
+        }
+
+        throw new Error(errorMessage || "Failed to connect to the AI service.");
     }
 };
 
@@ -151,7 +161,9 @@ export const detectAIContent = async (text: string): Promise<number> => {
     }
 
     // Sample text to reduce token usage
-    const sampledText = sampleText(text, 1000);
+    // INCREASED LIMIT: Effectively removing limits for most typical usage (up to ~25k words)
+    // GPT-4o has a large context window, so we can afford to send more text.
+    const sampledText = sampleText(text, 100000);
     console.log(`📝 Text sampled: ${text.length} chars → ${sampledText.length} chars`);
 
     // STRICT AI Detection Prompt - designed to match ZeroGPT accuracy
@@ -238,15 +250,15 @@ Return ONLY JSON: {"score": X} where X is 0-100 (AI percentage).
 BE STRICT. When in doubt, score HIGHER (more AI). Most text you analyze WILL be AI-generated.`;
 
     try {
-        console.log('🚀 Calling OpenAI API (GPT-4 for accuracy)...');
+        console.log('🚀 Calling OpenAI API (GPT-4o for maximum accuracy)...');
         const response = await openai.chat.completions.create({
-            model: 'gpt-4o-mini', // Use GPT-4 mini for better accuracy at lower cost
+            model: 'gpt-4o', // Use GPT-4o for best accuracy
             messages: [
                 { role: "system", content: systemPrompt },
                 { role: "user", content: `Analyze this text STRICTLY. Look for AI patterns and score harshly:\n\n"${sampledText}"\n\nReturn JSON: {"score": X} where X is 0-100 (AI percentage). Be strict!` }
             ],
             temperature: 0.1, // Very low temperature for consistent, analytical results
-            max_tokens: 100,
+            max_tokens: 300, // Increased to ensure JSON is never truncated
             response_format: { type: "json_object" }
         });
 
