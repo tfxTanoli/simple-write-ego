@@ -65,7 +65,6 @@ const AppContent: React.FC = () => {
   return (
     <Router>
       <Layout
-        key={refreshKey}
         user={user}
         setUser={setUser} // Deprecated but kept for type safety until refactor
         theme={theme}

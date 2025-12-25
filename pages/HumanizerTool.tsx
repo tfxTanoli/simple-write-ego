@@ -56,7 +56,7 @@ const HumanizerTool: React.FC<HumanizerToolProps> = ({ user, onUserUpdate, embed
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const wordCount = inputText.trim().split(/\s+/).filter(w => w.length > 0 && w !== "").length;
+  const wordCount = inputText.trim() ? inputText.trim().split(/\s+/).filter(w => w.length > 0).length : 0;
   const charCount = inputText.length;
 
   // Usage Check (if user exists)
@@ -158,7 +158,7 @@ const HumanizerTool: React.FC<HumanizerToolProps> = ({ user, onUserUpdate, embed
   const handleHumanize = async () => {
     if (!inputText) return;
     if (user && isOverLimit) {
-      setError("You have reached your daily limit of 500 words. Please try again tomorrow.");
+      setError("Limit Reached");
       return;
     }
     setError(null);
@@ -464,6 +464,9 @@ const HumanizerTool: React.FC<HumanizerToolProps> = ({ user, onUserUpdate, embed
                 </div>
 
                 <div className="flex space-x-3">
+                  <button onClick={resetTool} className="p-2 text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg transition" title="New Text">
+                    <RotateCcw className="h-5 w-5" />
+                  </button>
                   <button onClick={downloadResult} className="p-2 text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg transition" title="Download">
                     <Download className="h-5 w-5" />
                   </button>

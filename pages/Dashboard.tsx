@@ -36,7 +36,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const PRICE_PER_1K = 1.00;
 
   // Determine label based on plan
-  const limitLabel = user.plan === PlanType.FREE ? 'Daily Limit' : 'Monthly Limit';
+  const limitLabel = 'Limit';
   const resetLabel = user.plan === PlanType.FREE ? 'Resets in 12 hours' : 'Resets on next billing date';
 
   const increaseWords = () => {
