@@ -74,7 +74,7 @@ const AppContent: React.FC = () => {
       >
         <Routes>
           {/* Public Routes */}
-          <Route path="/" element={<LandingPage />} />
+          <Route path="/" element={<LandingPage user={user} onUserUpdate={refreshUser} />} />
           <Route path="/pricing" element={<PricingPage user={user} />} />
           <Route path="/blog" element={<BlogPage />} />
           <Route path="/tool" element={<HumanizerTool user={user} onUserUpdate={refreshUser} />} />

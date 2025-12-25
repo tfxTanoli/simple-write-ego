@@ -2,8 +2,14 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { CheckCircle2, ArrowRight, ShieldCheck, Zap, MessageCircle, Activity, PenTool, BookOpen, Globe, Layers, FileText, Sparkles, Code2 } from 'lucide-react';
 import HumanizerTool from './HumanizerTool';
+import { User } from '../types';
 
-const LandingPage: React.FC = () => {
+interface LandingPageProps {
+  user?: User | null;
+  onUserUpdate?: () => void;
+}
+
+const LandingPage: React.FC<LandingPageProps> = ({ user = null, onUserUpdate = () => {} }) => {
   const faqs = [
     {
       q: "1. How does SimpleWriteGo work?",
@@ -119,7 +125,7 @@ const LandingPage: React.FC = () => {
               Paste your AI-generated text below and watch it transform into natural, human writing in seconds. No signup required.
             </p>
           </div>
-          <HumanizerTool user={null} onUserUpdate={() => { }} embedded={true} />
+          <HumanizerTool user={user} onUserUpdate={onUserUpdate} embedded={true} />
         </div>
       </section>
 
