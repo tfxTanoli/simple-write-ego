@@ -9,7 +9,7 @@ interface LandingPageProps {
   onUserUpdate?: () => void;
 }
 
-const LandingPage: React.FC<LandingPageProps> = ({ user = null, onUserUpdate = () => {} }) => {
+const LandingPage: React.FC<LandingPageProps> = ({ user = null, onUserUpdate = () => { } }) => {
   const faqs = [
     {
       q: "1. How does SimpleWriteGo work?",

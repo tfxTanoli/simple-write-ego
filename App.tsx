@@ -17,6 +17,11 @@ import CheckoutPage from './pages/CheckoutPage';
 import { getUser } from './services/storageService';
 import { User } from './types';
 
+// Admin Components
+import AdminLayout from './pages/admin/AdminLayout';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import UserManagementPage from './pages/admin/UserManagementPage';
+
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 const AppContent: React.FC = () => {
@@ -119,6 +124,22 @@ const AppContent: React.FC = () => {
             path="/checkout"
             element={user ? <CheckoutPage user={user} onPlanUpdate={refreshUser} /> : <Navigate to="/login" />}
           />
+
+          {/* Admin Routes */}
+          <Route path="/admin" element={
+            user && user.role === 'admin' ? (
+              <AdminLayout
+                user={user}
+                theme={theme}
+                toggleTheme={toggleTheme}
+                onLogout={logout}
+              />
+            ) : user ? <Navigate to="/app" /> : <Navigate to="/login" />
+          }>
+            <Route index element={<Navigate to="/admin/dashboard" replace />} />
+            <Route path="dashboard" element={<AdminDashboard />} />
+            <Route path="users" element={<UserManagementPage />} />
+          </Route>
 
           {/* Catch all */}
           <Route path="*" element={<Navigate to="/" />} />
