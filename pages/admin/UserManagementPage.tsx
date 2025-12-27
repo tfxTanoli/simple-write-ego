@@ -3,6 +3,7 @@ import { getAllUsers, updateUserInDb, updateUserProfile } from '../../services/s
 import toast, { Toaster } from 'react-hot-toast';
 import { User, PlanType } from '../../types';
 import { Search, Edit2, Ban, CheckCircle, Save, X, Trash2, Shield, Mail } from 'lucide-react';
+import { API_URL } from '../../config';
 
 const UserManagementPage: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -28,7 +29,7 @@ const UserManagementPage: React.FC = () => {
   const loadUsers = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/admin/users`);
+      const response = await fetch(`${API_URL}/api/admin/users`);
       if (response.ok) {
         const data = await response.json();
         setUsers(data);
@@ -52,7 +53,7 @@ const UserManagementPage: React.FC = () => {
     const newStatus = user.status === 'suspended' ? 'active' : 'suspended';
     if (confirm(`Are you sure you want to ${newStatus === 'suspended' ? 'suspend' : 'activate'} ${user.name}?`)) {
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/admin/users/${user.id}`, {
+        const response = await fetch(`${API_URL}/api/admin/users/${user.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ status: newStatus })
@@ -73,7 +74,7 @@ const UserManagementPage: React.FC = () => {
   const handleSave = async () => {
     if (editingUser && formData) {
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/admin/users/${editingUser.id}`, {
+        const response = await fetch(`${API_URL}/api/admin/users/${editingUser.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData)
@@ -96,7 +97,7 @@ const UserManagementPage: React.FC = () => {
     if (editingUser) {
       if (confirm(`CRITICAL WARNING: This will permanently delete ${editingUser.name}. This action cannot be undone. Confirm delete?`)) {
         try {
-          const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/admin/users/${editingUser.id}`, {
+          const response = await fetch(`${API_URL}/api/admin/users/${editingUser.id}`, {
             method: 'DELETE',
           });
 

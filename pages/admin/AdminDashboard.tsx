@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Users, CreditCard, AlertCircle, TrendingUp, ArrowUpRight, ArrowDownRight, Activity } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { API_URL } from '../../config';
 
 const AdminDashboard: React.FC = () => {
     const [stats, setStats] = useState<any[]>([]);
@@ -10,7 +11,7 @@ const AdminDashboard: React.FC = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
                 const [statsRes, activityRes] = await Promise.all([
                     fetch(`${API_URL}/api/admin/stats`),
                     fetch(`${API_URL}/api/admin/activity`)
