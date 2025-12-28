@@ -1,0 +1,5 @@
+{
+  "variations": [
+    "The sun dipped below the horizon, painting the sky in a final, furious display of orange and purple. In the valley below, the ancient oak stood sentinel, its gnarled branches etched against the fading light like a map of forgotten rivers."
+  ]
+}

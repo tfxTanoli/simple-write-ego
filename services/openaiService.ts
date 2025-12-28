@@ -65,3 +65,30 @@ export const detectAIContent = async (text: string): Promise<number> => {
 
 
 
+
+/**
+ * Advanced Humanizer using Gradio (External AI Model).
+ * Bypasses tough detectors by using a specialized model via Hugging Face.
+ */
+export const humanizeTextAdvanced = async (text: string, intensity: string = 'standard'): Promise<string> => {
+    try {
+        const response = await fetch(`${API_URL}/api/ai/humanize-advanced`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ text, intensity }),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || "Failed to process with Advanced Humanizer");
+        }
+
+        const data = await response.json();
+        return data.text;
+    } catch (error: any) {
+        console.error("Advanced Humanize Error:", error);
+        throw new Error(error.message || "Failed to connect to the advanced humanizer service.");
+    }
+};

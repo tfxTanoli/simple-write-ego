@@ -1,0 +1,5 @@
+{
+  "variations": [
+    "The implementation of artificial intelligence represents a considerable advancement in technology."
+  ]
+}

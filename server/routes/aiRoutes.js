@@ -126,4 +126,43 @@ router.post('/humanize', async (req, res) => {
     }
 });
 
+// 🟢 Gradio Humanizer Endpoint (Ported from humanizer.py)
+router.post('/humanize-advanced', async (req, res) => {
+    try {
+        const { text, intensity = 'standard' } = req.body;
+
+        // Dynamic import because @gradio/client might be ESM
+        const { Client } = await import("@gradio/client");
+
+        // Connect to the space using the token from env if available
+        const client = await Client.connect("conversantech/humanizer-ai", {
+            hf_token: process.env.HF_API_TOKEN
+        });
+
+        // The Python script called: client.predict(text, intensity, api_name="/process_text_advanced")
+        // In JS client this maps to: client.predict("/process_text_advanced", [text, intensity])
+        const result = await client.predict("/process_text_advanced", [
+            text,
+            intensity
+        ]);
+
+        // Result structure from Python script analysis:
+        // result.data is usually an array of outputs.
+        // The script expected `result[0]` to be the text. 
+        // JS client returns an object { data: [...] }.
+
+        const humanizedText = result.data ? result.data[0] : "";
+
+        if (!humanizedText) {
+            throw new Error("No data returned from Gradio Space");
+        }
+
+        res.json({ text: humanizedText });
+
+    } catch (error) {
+        console.error("Gradio Humanizer Error:", error);
+        res.status(500).json({ error: "Failed to process with Advanced Humanizer. " + error.message });
+    }
+});
+
 module.exports = router;
