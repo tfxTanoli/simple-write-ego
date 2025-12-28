@@ -37,7 +37,11 @@ if (serviceAccount) {
     }
 }
 
-const db = admin.firestore();
-const auth = admin.auth();
+const db = admin.apps.length ? admin.firestore() : null;
+const auth = admin.apps.length ? admin.auth() : null;
+
+if (!db) {
+    console.error('Firebase Admin not initialized. DB and Auth will be null.');
+}
 
 module.exports = { admin, db, auth };
