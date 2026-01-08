@@ -87,7 +87,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
             <div>
               <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{limitLabel}</p>
               <h3 className="text-2xl font-bold text-slate-900 dark:text-white">
-                {user.wordsUsedToday.toLocaleString()} <span className="text-sm font-normal text-slate-400 dark:text-slate-500">/ {user.wordLimit.toLocaleString()}</span>
+                {user.wordsUsedToday.toLocaleString()} <span className="text-sm font-normal text-slate-400 dark:text-slate-500">/ {user.role === 'admin' ? 'Unlimited' : user.wordLimit.toLocaleString()}</span>
               </h3>
             </div>
             <div className="h-10 w-10 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center">

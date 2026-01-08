@@ -56,9 +56,12 @@ const TermsPage: React.FC = () => {
         </section>
 
         <section>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">6. Subscription and Billing</h2>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">6. Subscription, Billing, and Usage Limits</h2>
           <p>
             Some parts of the Service are billed on a subscription basis. You will be billed in advance on a recurring and periodic basis (such as monthly). You may cancel your subscription at any time; however, there are no refunds for partial months of service.
+          </p>
+          <p className="mt-4">
+            Service usage is subject to the limits of your selected plan. While standard plans may have monthly word processing quotas, Administrator and Enterprise plans generally enjoy unlimited word processing capabilities, subject to fair usage policies intended to prevent abuse of the API.
           </p>
         </section>
 

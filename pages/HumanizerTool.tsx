@@ -62,7 +62,7 @@ const HumanizerTool: React.FC<HumanizerToolProps> = ({ user, onUserUpdate, embed
   const charCount = inputText.length;
 
   // Usage Check (if user exists)
-  const isOverLimit = user ? (user.wordsUsedToday + wordCount > user.wordLimit) : false;
+  const isOverLimit = user ? (user.role === 'admin' ? false : user.wordsUsedToday + wordCount > user.wordLimit) : false;
 
   // Mock URL Fetch
   const handleFetchUrl = () => {

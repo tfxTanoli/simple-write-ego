@@ -474,7 +474,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ user: initialUser, onUserUp
               You are currently on the <strong>{user.plan}</strong> plan.
             </p>
             <p className="text-slate-500 dark:text-slate-500 text-xs">
-              Daily limit: {user.wordLimit === 1000000 ? 'Unlimited' : user.wordLimit} words.
+              Daily limit: {(user.role === 'admin' || user.wordLimit === 1000000) ? 'Unlimited' : user.wordLimit} words.
             </p>
           </div>
 
