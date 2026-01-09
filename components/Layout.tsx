@@ -72,7 +72,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, setUser, theme, toggleT
               <div className="hidden md:flex items-center space-x-8">
                 <Link to="/" className="text-slate-600 hover:text-brand-600 dark:text-slate-300 dark:hover:text-brand-400 font-medium transition">Home</Link>
                 <Link to="/pricing" className="text-slate-600 hover:text-brand-600 dark:text-slate-300 dark:hover:text-brand-400 font-medium transition">Pricing</Link>
-                <Link to="/privacy" className="text-slate-600 hover:text-brand-600 dark:text-slate-300 dark:hover:text-brand-400 font-medium transition">Privacy</Link>
+
                 <ThemeToggle />
                 {user?.role === 'admin' && (
                   <Link to="/admin/dashboard" className="text-slate-600 hover:text-brand-600 dark:text-slate-300 dark:hover:text-brand-400 font-medium transition flex items-center">
